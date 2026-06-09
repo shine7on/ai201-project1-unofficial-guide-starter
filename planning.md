@@ -26,8 +26,8 @@ This Unofficial Guide covers student experiences living in Grinnell College's re
 | 3 | S&B article | recent housing changes 2024 | https://thesandb.com/45774/article/loose-hall-closes-renfrow-hall-opens-and-younker-hall-transitions-in-2024-grinnell-college/ |
 | 4 | S&B article | CRIBZ: Renfrow Hall’s sweet suite; story about new dorm | https://thesandb.com/50642/features/cribz-renfrow-halls-sweet-suite/ |
 | 5 | S&B article | Story about first-year only dorm | https://thesandb.com/54752/news/reslife-first-year-housing-cluster-model-met-with-student-disapproval/ |
-| 6 | RateMyProfessor | Review for Norris Hall | https://www.ratemydorm.com/reviews/grinnell-college/grinnell-college-norris-hall |
-| 7 | RateMyProfessor | Review for Rose Hall | https://www.ratemydorm.com/reviews/grinnell-college/grinnell-college-rose-hall|
+| 6 | RateMyDorm | Review for Norris Hall | https://www.ratemydorm.com/reviews/grinnell-college/grinnell-college-norris-hall |
+| 7 | RateMyDorm | Review for Rose Hall | https://www.ratemydorm.com/reviews/grinnell-college/grinnell-college-rose-hall|
 | 8 | Grinnell College Website | Official hall descriptions | https://www.grinnell.edu/campus-life/student-life/living-spaces/residence-halls |
 | 9 | Grinnell College Website | Official language house descriptions | https://www.grinnell.edu/campus-life/student-life/living-spaces/language-project-houses |
 | 10 | Appily Review | Review about Grinnell College | https://www.appily.com/colleges/grinnell-college/reviews |
