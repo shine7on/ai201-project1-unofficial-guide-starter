@@ -7,11 +7,8 @@ then cleans and saves plain text to documents/clean/.
 Run:  python ingest.py
 """
 
-import re
 import time
-import requests
 from pathlib import Path
-from bs4 import BeautifulSoup, Comment
 
 # ---------------------------------------------------------------------------
 # Source definitions
