@@ -125,6 +125,52 @@ def build_vector_store(force: bool = False) -> None:
 # Stage 4 — Retrieval
 # ---------------------------------------------------------------------------
 
+# Every hall that has a grinnell_official_<name> source file.
+# Maps every name a user might type → the source id stem.
+_HALL_ALIASES: dict[str, str] = {
+    # straightforward matches
+    "clark":           "clark",
+    "cleveland":       "cleveland",
+    "cowles":          "cowles",
+    "dibble":          "dibble",
+    "gates":           "gates",
+    "haines":          "haines",
+    "james":           "james",
+    "kershaw":         "kershaw",
+    "langan":          "langan",
+    "lazier":          "lazier",
+    "loose":           "loose",
+    "main":            "main",
+    "norris":          "norris",
+    "rathje":          "rathje",
+    "rawson":          "rawson",
+    "read":            "read",
+    "renfrow":         "renfrow",
+    "rose":            "rose",
+    "smith":           "smith",
+    "younker":         "younker",
+    # common alternate spellings / nicknames
+    "kersh":           "kershaw",
+    "kershoff":        "kershaw",
+    "gardner":         "main",      # Gardner Lounge is in Main Hall
+    "bob's":           "main",      # Bob's Underground is on South / Main area
+}
+
+import re as _re
+
+def _detect_hall(question: str) -> str | None:
+    """
+    Return the grinnell_official_<hall> source name if any hall name is
+    mentioned in the question, else None.
+    Matches whole words only (so 'james' doesn't fire on 'james bond').
+    """
+    q_lower = question.lower()
+    for alias, hall_stem in _HALL_ALIASES.items():
+        if _re.search(rf"\b{_re.escape(alias)}\b", q_lower):
+            return f"grinnell_official_{hall_stem}"
+    return None
+
+
 def query(question: str, k: int = TOP_K) -> list[dict]:
     """
     Embed `question` and return the top-k most similar chunks.
@@ -149,27 +195,63 @@ def query(question: str, k: int = TOP_K) -> list[dict]:
     # Embed the question using the same model as the chunks
     q_embedding = model.encode([question])[0].tolist()
 
-    results = collection.query(
-        query_embeddings=[q_embedding],
-        n_results=k,
-        include=["documents", "metadatas", "distances"],
-    )
+    # If the question names a specific hall, pin that official source first,
+    # then fill remaining slots from the global search.
+    hall_source = _detect_hall(question)
 
-    # Unpack ChromaDB's nested-list response format
-    retrieved = []
-    for text, meta, dist in zip(
-        results["documents"][0],
-        results["metadatas"][0],
-        results["distances"][0],
-    ):
-        retrieved.append({
-            "text":        text,
-            "source":      meta["source"],
-            "chunk_index": meta["chunk_index"],
-            "distance":    round(dist, 4),
-        })
+    def _run_query(where_filter=None, n=k) -> list[dict]:
+        kwargs = dict(
+            query_embeddings=[q_embedding],
+            n_results=n,
+            include=["documents", "metadatas", "distances"],
+        )
+        if where_filter:
+            kwargs["where"] = where_filter
+        results = collection.query(**kwargs)
+        out = []
+        for text, meta, dist in zip(
+            results["documents"][0],
+            results["metadatas"][0],
+            results["distances"][0],
+        ):
+            out.append({
+                "text":        text,
+                "source":      meta["source"],
+                "chunk_index": meta["chunk_index"],
+                "distance":    round(dist, 4),
+            })
+        return out
 
-    return retrieved
+    if hall_source:
+        # Split k into: up to 2 slots from the official page + rest from global.
+        # This guarantees factual official info AND student opinions both appear.
+        OFFICIAL_SLOTS = min(2, k)
+
+        # Step 1: top-2 most relevant chunks from the official hall page
+        hall_chunks = _run_query(
+            where_filter={"source": {"$eq": hall_source}},
+            n=OFFICIAL_SLOTS,
+        )
+
+        # Step 2: fill remaining slots with global semantic search
+        # (excludes the official page so we get reviews/articles, not more official text)
+        remaining = k - len(hall_chunks)
+        global_chunks = _run_query(
+            where_filter={"source": {"$ne": hall_source}},
+            n=remaining + 2,  # fetch a few extra in case of duplicates
+        )
+
+        # Merge: official first, then global fill-ins
+        seen_ids = {(c["source"], c["chunk_index"]) for c in hall_chunks}
+        for c in global_chunks:
+            if (c["source"], c["chunk_index"]) not in seen_ids:
+                hall_chunks.append(c)
+                seen_ids.add((c["source"], c["chunk_index"]))
+            if len(hall_chunks) >= k:
+                break
+        return hall_chunks[:k]
+
+    return _run_query()
 
 
 # ---------------------------------------------------------------------------
